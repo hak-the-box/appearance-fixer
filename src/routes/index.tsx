@@ -384,46 +384,51 @@ function Odysseus() {
           ) : (
             <>
               {/* Chats section header */}
-              <button
-                onClick={() => setChatsOpen((v) => !v)}
-                className="nav-item flex w-full items-center justify-between rounded px-2 py-2 text-sm"
-                style={{ height: 29, boxSizing: "border-box", color: "var(--foreground)", opacity: 0.7, marginTop: 6 }}
-              >
-                <span className="flex items-center gap-2">
-                  <span className="flex shrink-0 items-center" style={{ opacity: 0.7 }}>
-                    <MessageSquare className="h-4 w-4" style={{ color: "var(--brand)" }} />
-                  </span>
-                  <span>Chats</span>
-                </span>
-                <span style={{ opacity: 0.4 }}>
-                  {chatsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                </span>
-              </button>
+              {showChats && (
+                <>
+                  <button
+                    onClick={() => setChatsOpen((v) => !v)}
+                    className="nav-item flex w-full items-center justify-between rounded px-2 py-2 text-sm"
+                    style={{ height: 29, boxSizing: "border-box", color: "var(--foreground)", opacity: 0.7, marginTop: 6 }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="flex shrink-0 items-center" style={{ opacity: 0.7 }}>
+                        <MessageSquare className="h-4 w-4" style={{ color: "var(--brand)" }} />
+                      </span>
+                      <span>Chats</span>
+                    </span>
+                    <span style={{ opacity: 0.4 }}>
+                      {chatsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    </span>
+                  </button>
 
-              {/* Chat items (collapsible) */}
-              {chatsOpen && (
-                <div style={{ overflow: "hidden" }} className="mb-2 space-y-0.5">
-                  {chats.map((chat) => (
-                    <button
-                      key={chat.id}
-                      onClick={() => {
-                        setActiveChatId(chat.id);
-                        setActivePanel("none");
-                      }}
-                      className="nav-item flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs truncate"
-                      style={{
-                        height: 29, boxSizing: "border-box", paddingLeft: 28,
-                        color: "var(--foreground)",
-                        opacity: activeChatId === chat.id ? 1 : 0.6,
-                        background: activeChatId === chat.id ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent",
-                      }}
-                    >
-                      <Clock className="h-3.5 w-3.5 shrink-0" style={{ opacity: 0.6 }} />
-                      <span className="truncate flex-1">{chat.title}</span>
-                    </button>
-                  ))}
-                </div>
+                  {/* Chat items (collapsible) */}
+                  {chatsOpen && (
+                    <div style={{ overflow: "hidden" }} className="mb-2 space-y-0.5">
+                      {chats.map((chat) => (
+                        <button
+                          key={chat.id}
+                          onClick={() => {
+                            setActiveChatId(chat.id);
+                            setActivePanel("none");
+                          }}
+                          className="nav-item flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs truncate"
+                          style={{
+                            height: 29, boxSizing: "border-box", paddingLeft: 28,
+                            color: "var(--foreground)",
+                            opacity: activeChatId === chat.id ? 1 : 0.6,
+                            background: activeChatId === chat.id ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent",
+                          }}
+                        >
+                          <Clock className="h-3.5 w-3.5 shrink-0" style={{ opacity: 0.6 }} />
+                          <span className="truncate flex-1">{chat.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
+
 
               {/* Tools section header */}
               <button
