@@ -17,14 +17,14 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 
 # Copy only production deps and built output
-COPY package.json bun.lock ./
+COPY package.json ./
 RUN npm install --omit=dev --frozen-lockfile
 
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/.output ./.output
+# COPY --from=builder /app/.output ./.output
 
 # Non-root user for security
-RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --shell /bin/bash app
+RUN groupadd --gid 1001 app && useradd --uid 1001 --gid app --shell /bin/bash app
 RUN mkdir -p /app/data /app/logs && chown -R app:app /app
 USER app
 
