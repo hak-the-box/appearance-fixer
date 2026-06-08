@@ -312,7 +312,7 @@ function Odysseus() {
         style={{ background: "var(--panel)", borderRight: "1px solid var(--border)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
         data-collapsed={sidebarCollapsed ? "true" : "false"}
       >
-        {!sidebarCollapsed && (
+        {!sidebarCollapsed && showBrand && (
           <div
             className="flex shrink-0 items-center justify-end gap-2"
             style={{ padding: "15px 10px 0 40px", minHeight: 40 }}
