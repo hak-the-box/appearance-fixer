@@ -1518,6 +1518,7 @@ function SettingsPanel() {
     { k: "shortcuts", label: "Shortcuts", icon: <Terminal className="h-3.5 w-3.5" /> },
   ];
   const [tab, setTab] = useState("ai");
+  const appearance = useAppearance();
 
   return (
     <div className="flex h-full flex-col">
