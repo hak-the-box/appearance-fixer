@@ -270,18 +270,22 @@ function Odysseus() {
     library:  { title: "Library",  icon: <BookOpen className="h-4 w-4" style={{ color: "var(--brand)" }} />,      w: 600, h: 520 },
   };
 
-  const topItems: { key: string; label: string; icon: React.ReactNode; }[] = [
-    { key: "new",    label: "New Chat",       icon: <Plus className="h-4 w-4" style={{ color: "var(--brand)" }} /> },
-    { key: "search", label: "Search",         icon: <Search className="h-4 w-4" /> },
+  const allTopItems: { key: string; label: string; sidebarKey: SidebarKey; icon: React.ReactNode; }[] = [
+    { key: "new",    label: "New Chat",       sidebarKey: "New Chat", icon: <Plus className="h-4 w-4" style={{ color: "var(--brand)" }} /> },
+    { key: "search", label: "Search",         sidebarKey: "Search",   icon: <Search className="h-4 w-4" /> },
   ];
+  const topItems = allTopItems.filter((i) => appearance.isSidebarVisible(i.sidebarKey));
 
-  const toolItems: { key: PanelKey; label: string; icon: React.ReactNode; }[] = [
-    { key: "brain",  label: "Brain",          icon: <BrainIcon className="h-4 w-4" /> },
-    { key: "deep",   label: "Deep Research",  icon: <Compass className="h-4 w-4" /> },
-    { key: "library",label: "Library",        icon: <BookOpen className="h-4 w-4" /> },
-    { key: "tasks",  label: "Tasks",          icon: <ClipboardList className="h-4 w-4" /> },
-    { key: "theme",  label: "Theme",          icon: <Palette className="h-4 w-4" /> },
+  const allToolItems: { key: PanelKey; label: string; sidebarKey: SidebarKey; icon: React.ReactNode; }[] = [
+    { key: "brain",  label: "Brain",          sidebarKey: "Brain",         icon: <BrainIcon className="h-4 w-4" /> },
+    { key: "deep",   label: "Deep Research",  sidebarKey: "Deep Research", icon: <Compass className="h-4 w-4" /> },
+    { key: "library",label: "Library",        sidebarKey: "Library",       icon: <BookOpen className="h-4 w-4" /> },
+    { key: "tasks",  label: "Tasks",          sidebarKey: "Tasks",         icon: <ClipboardList className="h-4 w-4" /> },
+    { key: "theme",  label: "Theme",          sidebarKey: "Theme",         icon: <Palette className="h-4 w-4" /> },
   ];
+  const toolItems = allToolItems.filter((i) => appearance.isSidebarVisible(i.sidebarKey));
+  const showBrand = appearance.isSidebarVisible("Brand");
+  const showChats = appearance.isSidebarVisible("Chats");
 
   return (
     <div className="relative flex h-screen w-screen" style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>
