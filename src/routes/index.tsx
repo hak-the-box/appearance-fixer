@@ -113,6 +113,7 @@ function Odysseus() {
   const [chats, setChats] = useState<Chat[]>(initialChats);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chatsOpen, setChatsOpen] = useState(true);
+  const appearance = useAppearance();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const overflowRef = useRef<HTMLDivElement>(null);
@@ -122,8 +123,9 @@ function Odysseus() {
   const activeChat = chats.find((c) => c.id === activeChatId);
 
   useEffect(() => {
+    if (!appearance.chat.autoScroll) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeChat?.messages]);
+  }, [activeChat?.messages, appearance.chat.autoScroll]);
 
   const toggleSidebarCollapsed = () => setSidebarCollapsed((c) => !c);
 
