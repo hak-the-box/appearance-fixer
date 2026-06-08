@@ -1,18 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { sendChatMessage } from "@/lib/chat";
+import { sendChatStream, fetchModels } from "@/lib/chat";
+import type { DiscoveredHost } from "@/lib/llm/types";
 import { BackgroundEffect, useTheme, type ThemeColors } from "@/lib/theme";
 import { useAppearance, SIDEBAR_KEYS, type SidebarKey } from "@/lib/appearance";
 
-import {
-  Plus, Search, Wrench, Brain as BrainIcon, Compass, Image as ImageIcon,
-  BookOpen, ClipboardList, Palette, ChevronDown, ChevronUp, Eye, Minus, X,
-  Mic, Terminal, CheckSquare, ArrowUp, Sparkles, Settings as SettingsIcon,
-  Heart, Upload, Activity, Plus as PlusIcon, Pause, Play, MoreVertical,
-  Pencil, Globe, Clock, Bookmark, Star, Trash2, Download, ChevronRight,
-  Sliders, Sun, Moon, Monitor, Type, Maximize2, Paperclip, FileText, Database, StopCircle,
-  MessageSquare,
-} from "lucide-react";
+import { Plus, Search, Wrench, Brain as BrainIcon, Compass, Image as ImageIcon, BookOpen, ClipboardList, Palette, ChevronDown, ChevronUp, Eye, Minus, X, Mic, Terminal, SquareCheck as CheckSquare, ArrowUp, Sparkles, Settings as SettingsIcon, Heart, Upload, Activity, Plus as PlusIcon, Pause, Play, MoveVertical as MoreVertical, Pencil, Globe, Clock, Bookmark, Star, Trash2, Download, ChevronRight, FileSliders as Sliders, Sun, Moon, Monitor, Type, Maximize2, Paperclip, FileText, Database, CircleStop as StopCircle, MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -108,6 +101,11 @@ function Odysseus() {
   const [planMode, setPlanMode] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
+  const [discoveredHosts, setDiscoveredHosts] = useState<DiscoveredHost[]>([]);
+  const [activeModel, setActiveModel] = useState<string>("gemma4:latest");
+  const [activeEndpointUrl, setActiveEndpointUrl] = useState<string>("");
+  const [modelSearch, setModelSearch] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [inputTick, setInputTick] = useState(0);
   const [chats, setChats] = useState<Chat[]>(initialChats);
@@ -121,6 +119,17 @@ function Odysseus() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeChat = chats.find((c) => c.id === activeChatId);
+
+  // Discover models from backend on mount
+  useEffect(() => {
+    fetchModels().then((hosts) => {
+      setDiscoveredHosts(hosts);
+      if (hosts.length > 0 && hosts[0].models.length > 0) {
+        setActiveModel(hosts[0].models[0]);
+        setActiveEndpointUrl(hosts[0].url);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (!appearance.chat.autoScroll) return;
@@ -177,6 +186,7 @@ function Odysseus() {
 
   const handleSend = () => {
     if (!hasText && !hasFiles) return;
+    if (isStreaming) return;
     const userText = textareaRef.current?.value || "";
     if (textareaRef.current) textareaRef.current.value = "";
     if (textareaRef.current) { textareaRef.current.style.height = "auto"; }
@@ -189,10 +199,18 @@ function Odysseus() {
       timestamp: "Just now"
     };
 
+    // Add placeholder assistant message for streaming
+    const assistantId = `msg-${Date.now() + 1}`;
+    const assistantMessage: Message = {
+      id: assistantId,
+      sender: "assistant",
+      text: "",
+      timestamp: "Just now",
+    };
+
     let targetChatId = activeChatId;
 
     if (!targetChatId) {
-      // Create a new chat session
       const newChatId = `chat-${Date.now()}`;
       const title = userText.length > 30 ? userText.substring(0, 30) + "..." : userText;
       const newChat: Chat = {
@@ -200,20 +218,19 @@ function Odysseus() {
         title: title,
         preview: userText,
         date: "Just now",
-        messages: [newUserMessage]
+        messages: [newUserMessage, assistantMessage]
       };
       setChats((prev) => [newChat, ...prev]);
       setActiveChatId(newChatId);
       targetChatId = newChatId;
     } else {
-      // Append to existing chat
       setChats((prev) =>
         prev.map((c) => {
           if (c.id === targetChatId) {
             return {
               ...c,
               preview: userText,
-              messages: [...c.messages, newUserMessage]
+              messages: [...c.messages, newUserMessage, assistantMessage]
             };
           }
           return c;
@@ -221,19 +238,43 @@ function Odysseus() {
       );
     }
 
-    // Fetch AI response from backend
-    void sendChatMessage(userText).then((replyText) => {
-      const assistantMessage: Message = {
-        id: `msg-${Date.now() + 1}`,
-        sender: "assistant",
-        text: replyText,
-        timestamp: "Just now",
-      };
-      setChats((prev) =>
-        prev.map((c) =>
-          c.id === targetChatId ? { ...c, messages: [...c.messages, assistantMessage] } : c
-        )
-      );
+    // Stream the AI response
+    setIsStreaming(true);
+    void sendChatStream(userText, {
+      model: activeModel,
+      endpointId: activeEndpointUrl,
+      onDelta: (text) => {
+        setChats((prev) =>
+          prev.map((c) =>
+            c.id === targetChatId
+              ? {
+                  ...c,
+                  messages: c.messages.map((m) =>
+                    m.id === assistantId ? { ...m, text: m.text + text } : m
+                  ),
+                }
+              : c
+          )
+        );
+      },
+      onDone: () => setIsStreaming(false),
+      onError: (err) => {
+        setChats((prev) =>
+          prev.map((c) =>
+            c.id === targetChatId
+              ? {
+                  ...c,
+                  messages: c.messages.map((m) =>
+                    m.id === assistantId
+                      ? { ...m, text: m.text || `Error: ${err}` }
+                      : m
+                  ),
+                }
+              : c
+          )
+        );
+        setIsStreaming(false);
+      },
     });
   };
 
@@ -595,27 +636,45 @@ function Odysseus() {
               />
               {/* Model picker */}
               <div className="model-picker-wrap" ref={modelPickerRef}>
-                <button type="button" className="model-picker-btn" onClick={() => setModelPickerOpen((v) => !v)} title="Switch model">
+                <button type="button" className="model-picker-btn" onClick={() => { setModelPickerOpen((v) => !v); setModelSearch(""); }} title="Switch model">
                   <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--brand)" }} />
-                  <span id="model-picker-label">gemma4:latest</span>
+                  <span id="model-picker-label">{activeModel}</span>
                   <ChevronDown className="h-3 w-3" />
                 </button>
                 {modelPickerOpen && (
                   <div className="model-picker-menu">
                     <div className="model-picker-search-row">
-                      <input type="text" placeholder="Search models..." autoFocus className="model-picker-search" />
-                      <button type="button" className="model-picker-action-btn primary" title="Add model endpoints">
-                        <Plus className="h-3 w-3" />
+                      <input type="text" placeholder="Search models..." autoFocus className="model-picker-search"
+                        value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} />
+                      <button type="button" className="model-picker-action-btn primary" title="Refresh models"
+                        onClick={() => { fetchModels().then(setDiscoveredHosts); }}>
+                        <Search className="h-3 w-3" />
                       </button>
                     </div>
                     <div className="model-picker-list">
-                      <div className="mp-group-label">Favorites</div>
-                      <div className="mp-item active">gemma4:latest <span className="mp-provider">Ollama</span></div>
-                      <div className="mp-item">llama3.2:3b <span className="mp-provider">Ollama</span></div>
-                      <div className="mp-group-label">Recent</div>
-                      <div className="mp-item">mistral:7b <span className="mp-provider">Ollama</span></div>
-                      <div className="mp-group-label">Ollama</div>
-                      <div className="mp-item">nomic-embed-text:latest <span className="mp-provider">Ollama</span></div>
+                      {discoveredHosts.length === 0 && (
+                        <div className="mp-item" style={{ opacity: 0.5 }}>No models discovered</div>
+                      )}
+                      {discoveredHosts.map((host) => {
+                        const filtered = host.models.filter((m) =>
+                          m.toLowerCase().includes(modelSearch.toLowerCase())
+                        );
+                        if (filtered.length === 0) return null;
+                        return (
+                          <div key={host.url}>
+                            <div className="mp-group-label">{host.provider === "ollama" ? "Ollama" : host.provider === "openai" ? "OpenAI" : host.provider === "anthropic" ? "Anthropic" : new URL(host.url).host}</div>
+                            {filtered.map((model) => (
+                              <div
+                                key={`${host.url}-${model}`}
+                                className={`mp-item ${model === activeModel && host.url === activeEndpointUrl ? "active" : ""}`}
+                                onClick={() => { setActiveModel(model); setActiveEndpointUrl(host.url); setModelPickerOpen(false); }}
+                              >
+                                {model} <span className="mp-provider">{host.provider}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
