@@ -1,0 +1,91 @@
+services:
+  odysseus:
+    build: .
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-7000}:3000"
+    volumes:
+      - ./data:/app/data:z
+      - ./logs:/app/logs:z
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - NODE_ENV=production
+      - SEARXNG_INSTANCE=http://searxng:8080
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - NTFY_URL=http://ntfy:80
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
+    depends_on:
+      searxng:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    restart: unless-stopped
+
+  chromadb:
+    image: docker.io/chromadb/chroma:latest
+    ports:
+      - "${CHROMADB_BIND:-127.0.0.1}:8100:8000"
+    volumes:
+      - chromadb-data:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+
+  searxng:
+    image: docker.io/searxng/searxng:2026.5.31-7159b8aed
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        if [ ! -s /etc/searxng/settings.yml ] || grep -q '__SEARXNG_SECRET__' /etc/searxng/settings.yml; then
+          secret="$${SEARXNG_SECRET:-}"
+          if [ -z "$$secret" ]; then
+            secret="$$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          fi
+          sed "s|__SEARXNG_SECRET__|$$secret|g" /tmp/searxng-settings.yml.template > /etc/searxng/settings.yml
+        fi
+        exec /usr/local/searxng/entrypoint.sh
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - searxng-data:/etc/searxng
+      - ./config/searxng/settings.yml:/tmp/searxng-settings.yml.template:ro,z
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET=${SEARXNG_SECRET:-}
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/', timeout=5).read(1)\""]
+      interval: 5s
+      timeout: 6s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  ntfy:
+    image: docker.io/binwiederhier/ntfy
+    command: serve
+    ports:
+      - "${NTFY_BIND:-127.0.0.1}:8091:80"
+    volumes:
+      - ntfy-cache:/var/cache/ntfy
+    environment:
+      - NTFY_BASE_URL=${NTFY_BASE_URL:-http://localhost:8091}
+    restart: unless-stopped
+
+volumes:
+  searxng-data:
+  chromadb-data:
+  ntfy-cache:
