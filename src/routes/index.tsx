@@ -791,10 +791,17 @@ function Panel({ title, icon, subtitle, initial, onClose, children }: {
 
 /* ---------- Shared Components ---------- */
 
-function Toggle({ on }: { on?: boolean }) {
-  const [v, setV] = useState(!!on);
+function Toggle({ on, onChange }: { on?: boolean; onChange?: (v: boolean) => void }) {
+  const [internal, setInternal] = useState(!!on);
+  const isControlled = onChange !== undefined;
+  const v = isControlled ? !!on : internal;
+  const toggle = () => {
+    const next = !v;
+    if (isControlled) onChange!(next);
+    else setInternal(next);
+  };
   return (
-    <button onClick={() => setV(!v)} className="relative h-5 w-9 rounded-full p-0.5 transition-colors"
+    <button onClick={toggle} className="relative h-5 w-9 rounded-full p-0.5 transition-colors"
       style={{ background: v ? "var(--brand)" : "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>
       <span className={`block h-4 w-4 rounded-full bg-white transition-transform ${v ? "translate-x-4" : ""}`} />
     </button>
