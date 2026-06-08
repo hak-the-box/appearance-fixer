@@ -1631,10 +1631,13 @@ function SettingsPanel() {
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
                 <div className="mb-2 text-sm font-semibold">Sidebar Elements</div>
                 <div className="space-y-1.5">
-                  {["Brand", "Search", "New Chat", "Chats", "Models", "Brain", "Deep Research", "Library", "Tasks", "Theme"].map((item) => (
+                  {SIDEBAR_KEYS.map((item) => (
                     <div key={item} className="flex items-center justify-between">
                       <span>{item}</span>
-                      <Toggle on />
+                      <Toggle
+                        on={appearance.isSidebarVisible(item)}
+                        onChange={(v) => appearance.setSidebarVisible(item, v)}
+                      />
                     </div>
                   ))}
                 </div>
@@ -1644,15 +1647,24 @@ function SettingsPanel() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span>Auto-scroll</span>
-                    <Toggle on />
+                    <Toggle
+                      on={appearance.chat.autoScroll}
+                      onChange={(v) => appearance.setChatPref("autoScroll", v)}
+                    />
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Nobody Mode</span>
-                    <Toggle />
+                    <Toggle
+                      on={appearance.chat.nobodyMode}
+                      onChange={(v) => appearance.setChatPref("nobodyMode", v)}
+                    />
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Sound Effects</span>
-                    <Toggle />
+                    <Toggle
+                      on={appearance.chat.soundEffects}
+                      onChange={(v) => appearance.setChatPref("soundEffects", v)}
+                    />
                   </div>
                 </div>
               </div>
