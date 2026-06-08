@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { sendChatMessage } from "@/lib/chat";
 import { BackgroundEffect, useTheme, type ThemeColors } from "@/lib/theme";
+import { useAppearance, SIDEBAR_KEYS, type SidebarKey } from "@/lib/appearance";
 
 import {
   Plus, Search, Wrench, Brain as BrainIcon, Compass, Image as ImageIcon,
