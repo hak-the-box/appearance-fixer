@@ -5,7 +5,6 @@ export type SidebarKey =
   | "Search"
   | "New Chat"
   | "Chats"
-  | "Models"
   | "Brain"
   | "Deep Research"
   | "Library"
@@ -13,7 +12,7 @@ export type SidebarKey =
   | "Theme";
 
 export const SIDEBAR_KEYS: SidebarKey[] = [
-  "Brand", "Search", "New Chat", "Chats", "Models",
+  "Brand", "Search", "New Chat", "Chats",
   "Brain", "Deep Research", "Library", "Tasks", "Theme",
 ];
 
