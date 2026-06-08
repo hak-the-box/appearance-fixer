@@ -19,9 +19,7 @@ WORKDIR /app
 # Copy only production deps and built output
 COPY package.json ./
 RUN npm install --omit=dev --frozen-lockfile
-
 COPY --from=builder /app/dist ./dist
-# COPY --from=builder /app/.output ./.output
 
 # Non-root user for security
 RUN groupadd --gid 1001 app && useradd --uid 1001 --gid app --shell /bin/bash app
@@ -34,4 +32,4 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 ENV NODE_ENV=production
 
-CMD ["node", ".output/server/index.mjs"]
+CMD ["node", "dist/server/server.js"]
