@@ -349,20 +349,22 @@ function Odysseus() {
           {sidebarCollapsed ? (
             <>
               <div className="my-1 mx-auto h-px w-6" style={{ background: "var(--border)" }} />
-              <button
-                title="Chats"
-                onClick={() => togglePanel("search")}
-                className="nav-item flex w-full items-center justify-center rounded px-0 py-2 text-sm"
-                style={{
-                  height: 29, boxSizing: "border-box",
-                  color: "var(--foreground)",
-                  opacity: 0.6,
-                }}
-              >
-                <span className="flex shrink-0 items-center" style={{ opacity: 0.6 }}>
-                  <MessageSquare className="h-4 w-4" />
-                </span>
-              </button>
+              {showChats && (
+                <button
+                  title="Chats"
+                  onClick={() => togglePanel("search")}
+                  className="nav-item flex w-full items-center justify-center rounded px-0 py-2 text-sm"
+                  style={{
+                    height: 29, boxSizing: "border-box",
+                    color: "var(--foreground)",
+                    opacity: 0.6,
+                  }}
+                >
+                  <span className="flex shrink-0 items-center" style={{ opacity: 0.6 }}>
+                    <MessageSquare className="h-4 w-4" />
+                  </span>
+                </button>
+              )}
               <div className="my-1 mx-auto h-px w-6" style={{ background: "var(--border)" }} />
               {toolItems.map((item) => (
                 <button
