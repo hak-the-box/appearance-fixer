@@ -1632,29 +1632,49 @@ function SettingsPanel() {
                 <div className="space-y-2">
                   <div>
                     <span className="block mb-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Endpoint</span>
-                    <select className="w-full rounded-md px-2 py-1 outline-none" style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}>
-                      <option>Ollama (Connected)</option>
+                    <select
+                      value={ai.endpoint}
+                      onChange={(e) => ai.set("endpoint", e.target.value)}
+                      className="w-full rounded-md px-2 py-1 outline-none"
+                      style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                    >
+                      <option value="Ollama">Ollama (Connected)</option>
+                      <option value="LM Studio">LM Studio</option>
+                      <option value="vLLM">vLLM</option>
                     </select>
                   </div>
                   <div>
                     <span className="block mb-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Model</span>
-                    <select className="w-full rounded-md px-2 py-1 outline-none" style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}>
-                      <option>gemma4:latest</option>
-                    </select>
+                    <input
+                      value={ai.chatModel}
+                      onChange={(e) => ai.set("chatModel", e.target.value)}
+                      className="w-full rounded-md px-2 py-1 outline-none"
+                      style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                    />
                   </div>
                 </div>
               </div>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
                 <div className="mb-1.5 text-sm font-semibold">Utility Model</div>
-                <select className="w-full rounded-md px-2 py-1 outline-none" style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}>
-                  <option>gemma4:latest</option>
-                </select>
+                <input
+                  value={ai.utilityModel}
+                  onChange={(e) => ai.set("utilityModel", e.target.value)}
+                  className="w-full rounded-md px-2 py-1 outline-none"
+                  style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                />
               </div>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold">Agent Tool Call Limit</span>
-                  <input type="number" defaultValue={10} min={1} max={50} className="w-16 rounded-md px-2 py-1 text-right outline-none"
-                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }} />
+                  <input
+                    type="number"
+                    value={ai.toolCallLimit}
+                    min={1}
+                    max={50}
+                    onChange={(e) => ai.set("toolCallLimit", Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                    className="w-16 rounded-md px-2 py-1 text-right outline-none"
+                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                  />
                 </div>
               </div>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
@@ -1663,11 +1683,21 @@ function SettingsPanel() {
                     <div className="text-sm font-semibold">Vision</div>
                     <p className="mt-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Enable vision capabilities</p>
                   </div>
-                  <Toggle on />
+                  <Toggle on={ai.vision} onChange={(v) => ai.set("vision", v)} />
                 </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => ai.reset()}
+                  className="rounded-md px-3 py-1.5 text-xs"
+                  style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", color: "var(--foreground)" }}
+                >
+                  Reset to defaults
+                </button>
               </div>
             </>
           )}
+
 
           {tab === "services" && (
             <>
