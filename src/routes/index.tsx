@@ -4,6 +4,8 @@ import { sendChatStream, fetchModels } from "@/lib/chat";
 import type { DiscoveredHost } from "@/lib/llm/types";
 import { BackgroundEffect, useTheme, type ThemeColors } from "@/lib/theme";
 import { useAppearance, SIDEBAR_KEYS, type SidebarKey } from "@/lib/appearance";
+import { useAccount } from "@/lib/account";
+import { useAIDefaults } from "@/lib/aiDefaults";
 
 import { Plus, Search, Wrench, Brain as BrainIcon, Compass, Image as ImageIcon, BookOpen, ClipboardList, Palette, ChevronDown, ChevronUp, Eye, Minus, X, Mic, Terminal, SquareCheck as CheckSquare, ArrowUp, Sparkles, Settings as SettingsIcon, Heart, Upload, Activity, Plus as PlusIcon, Pause, Play, MoveVertical as MoreVertical, Pencil, Globe, Clock, Bookmark, Star, Trash2, Download, ChevronRight, FileSliders as Sliders, Sun, Moon, Monitor, Type, Maximize2, Paperclip, FileText, Database, CircleStop as StopCircle, MessageSquare } from "lucide-react";
 
@@ -1578,6 +1580,21 @@ function SettingsPanel() {
   ];
   const [tab, setTab] = useState("ai");
   const appearance = useAppearance();
+  const account = useAccount();
+  const ai = useAIDefaults();
+
+  // Account tab local form state
+  const [usernameDraft, setUsernameDraft] = useState(account.profile.username);
+  const [emailDraft, setEmailDraft] = useState(account.profile.email);
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  useEffect(() => {
+    setUsernameDraft(account.profile.username);
+    setEmailDraft(account.profile.email);
+  }, [account.profile.username, account.profile.email]);
+
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   return (
     <div className="flex h-full flex-col">
@@ -1615,29 +1632,49 @@ function SettingsPanel() {
                 <div className="space-y-2">
                   <div>
                     <span className="block mb-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Endpoint</span>
-                    <select className="w-full rounded-md px-2 py-1 outline-none" style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}>
-                      <option>Ollama (Connected)</option>
+                    <select
+                      value={ai.endpoint}
+                      onChange={(e) => ai.set("endpoint", e.target.value)}
+                      className="w-full rounded-md px-2 py-1 outline-none"
+                      style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                    >
+                      <option value="Ollama">Ollama (Connected)</option>
+                      <option value="LM Studio">LM Studio</option>
+                      <option value="vLLM">vLLM</option>
                     </select>
                   </div>
                   <div>
                     <span className="block mb-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Model</span>
-                    <select className="w-full rounded-md px-2 py-1 outline-none" style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}>
-                      <option>gemma4:latest</option>
-                    </select>
+                    <input
+                      value={ai.chatModel}
+                      onChange={(e) => ai.set("chatModel", e.target.value)}
+                      className="w-full rounded-md px-2 py-1 outline-none"
+                      style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                    />
                   </div>
                 </div>
               </div>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
                 <div className="mb-1.5 text-sm font-semibold">Utility Model</div>
-                <select className="w-full rounded-md px-2 py-1 outline-none" style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}>
-                  <option>gemma4:latest</option>
-                </select>
+                <input
+                  value={ai.utilityModel}
+                  onChange={(e) => ai.set("utilityModel", e.target.value)}
+                  className="w-full rounded-md px-2 py-1 outline-none"
+                  style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                />
               </div>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold">Agent Tool Call Limit</span>
-                  <input type="number" defaultValue={10} min={1} max={50} className="w-16 rounded-md px-2 py-1 text-right outline-none"
-                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }} />
+                  <input
+                    type="number"
+                    value={ai.toolCallLimit}
+                    min={1}
+                    max={50}
+                    onChange={(e) => ai.set("toolCallLimit", Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                    className="w-16 rounded-md px-2 py-1 text-right outline-none"
+                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                  />
                 </div>
               </div>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
@@ -1646,11 +1683,21 @@ function SettingsPanel() {
                     <div className="text-sm font-semibold">Vision</div>
                     <p className="mt-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Enable vision capabilities</p>
                   </div>
-                  <Toggle on />
+                  <Toggle on={ai.vision} onChange={(v) => ai.set("vision", v)} />
                 </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => ai.reset()}
+                  className="rounded-md px-3 py-1.5 text-xs"
+                  style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", color: "var(--foreground)" }}
+                >
+                  Reset to defaults
+                </button>
               </div>
             </>
           )}
+
 
           {tab === "services" && (
             <>
@@ -1734,29 +1781,108 @@ function SettingsPanel() {
             <>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
                 <div className="mb-2 text-sm font-semibold">Profile</div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold uppercase"
-                    style={{ background: "color-mix(in srgb, var(--brand) 20%, transparent)", color: "var(--brand)" }}>A</div>
+                    style={{ background: "color-mix(in srgb, var(--brand) 20%, transparent)", color: "var(--brand)" }}>
+                    {(account.profile.username || "?").charAt(0)}
+                  </div>
                   <div>
-                    <div className="text-sm">admin</div>
-                    <div className="text-xs" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>admin@odysseus.local</div>
+                    <div className="text-sm">{account.profile.username}</div>
+                    <div className="text-xs" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>{account.profile.email}</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <span className="block mb-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Username</span>
+                    <input
+                      value={usernameDraft}
+                      onChange={(e) => setUsernameDraft(e.target.value)}
+                      className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
+                      style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                    />
+                  </div>
+                  <div>
+                    <span className="block mb-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Email</span>
+                    <input
+                      type="email"
+                      value={emailDraft}
+                      onChange={(e) => setEmailDraft(e.target.value)}
+                      className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
+                      style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                    />
+                  </div>
+                  {profileMsg && (
+                    <div className="text-xs" style={{ color: "var(--success, #16a34a)" }}>{profileMsg}</div>
+                  )}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => {
+                        const name = usernameDraft.trim();
+                        const email = emailDraft.trim();
+                        if (!name) { setProfileMsg("Username can't be empty."); return; }
+                        account.updateProfile({ username: name, email });
+                        setProfileMsg("Profile saved.");
+                        setTimeout(() => setProfileMsg(null), 2000);
+                      }}
+                      className="rounded-md px-3 py-1.5 text-xs text-white"
+                      style={{ background: "var(--brand)" }}
+                    >
+                      Save
+                    </button>
                   </div>
                 </div>
               </div>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
                 <div className="mb-2 text-sm font-semibold">Change Password</div>
                 <div className="space-y-2">
-                  <input type="password" placeholder="Current password" className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
-                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }} />
-                  <input type="password" placeholder="New password" className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
-                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }} />
+                  <input
+                    type="password"
+                    placeholder="Current password"
+                    value={currentPw}
+                    onChange={(e) => setCurrentPw(e.target.value)}
+                    className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
+                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                  />
+                  <input
+                    type="password"
+                    placeholder="New password (min 4 chars)"
+                    value={newPw}
+                    onChange={(e) => setNewPw(e.target.value)}
+                    className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
+                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                  />
+                  {pwMsg && (
+                    <div className="text-xs" style={{ color: pwMsg.ok ? "var(--success, #16a34a)" : "var(--destructive, #dc2626)" }}>
+                      {pwMsg.text}
+                    </div>
+                  )}
                   <div className="flex justify-end">
-                    <button className="rounded-md px-3 py-1.5 text-xs text-white" style={{ background: "var(--brand)" }}>Update</button>
+                    <button
+                      onClick={() => {
+                        const result = account.changePassword(currentPw, newPw);
+                        if (result.ok) {
+                          setPwMsg({ ok: true, text: "Password updated." });
+                          setCurrentPw("");
+                          setNewPw("");
+                          setTimeout(() => setPwMsg(null), 2500);
+                        } else {
+                          setPwMsg({ ok: false, text: result.error ?? "Could not update password." });
+                        }
+                      }}
+                      className="rounded-md px-3 py-1.5 text-xs text-white"
+                      style={{ background: "var(--brand)" }}
+                    >
+                      Update
+                    </button>
                   </div>
+                  <p className="text-[10px]" style={{ color: "color-mix(in srgb, var(--foreground) 40%, transparent)" }}>
+                    Local-only single-user mode. Default password is <code>admin</code>. Credentials are stored in your browser, not on a server.
+                  </p>
                 </div>
               </div>
             </>
           )}
+
 
           {tab === "shortcuts" && (
             <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
