@@ -789,7 +789,6 @@ function Odysseus() {
                   setActivePanel("none");
                 }}
                 memories={mockMemories}
-                files={mockFiles}
               />
             )}
             {activePanel === "library" && <LibraryPanel />}
