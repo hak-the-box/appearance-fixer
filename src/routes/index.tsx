@@ -7,6 +7,8 @@ import { useAppearance, SIDEBAR_KEYS, type SidebarKey } from "@/lib/appearance";
 import { useAccount } from "@/lib/account";
 import { useAIDefaults } from "@/lib/aiDefaults";
 
+import { useLibrary, formatBytes, timeAgo } from "@/lib/library";
+
 import { Plus, Search, Wrench, Brain as BrainIcon, Compass, Image as ImageIcon, BookOpen, ClipboardList, Palette, ChevronDown, ChevronUp, Eye, Minus, X, Mic, Terminal, SquareCheck as CheckSquare, ArrowUp, Sparkles, Settings as SettingsIcon, Heart, Upload, Activity, Plus as PlusIcon, Pause, Play, MoveVertical as MoreVertical, Pencil, Globe, Clock, Bookmark, Star, Trash2, Download, ChevronRight, FileSliders as Sliders, Sun, Moon, Monitor, Type, Maximize2, Paperclip, FileText, Database, CircleStop as StopCircle, MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -43,14 +45,6 @@ const mockMemories = [
   { id: "mem-4", text: "Uses Ollama for local model running.", tags: ["environment"], meta: "auto · 3d ago" },
 ];
 
-const mockFiles = [
-  { id: "file-1", name: "api_docs.md", type: "markdown", size: "12 KB", date: "2 days ago" },
-  { id: "file-2", name: "architecture_overview.txt", type: "text", size: "8 KB", date: "5 days ago" },
-  { id: "file-3", name: "meeting_notes.pdf", type: "pdf", size: "245 KB", date: "1 week ago" },
-  { id: "file-4", name: "schema.sql", type: "sql", size: "4 KB", date: "2 weeks ago" },
-  { id: "file-5", name: "sunset_photo.png", type: "image", size: "1.8 MB", date: "3 days ago" },
-  { id: "file-6", name: "beach_screenshot.webp", type: "image", size: "640 KB", date: "1 week ago" },
-];
 
 const initialChats: Chat[] = [
   {
@@ -787,7 +781,6 @@ function Odysseus() {
                   setActivePanel("none");
                 }}
                 memories={mockMemories}
-                files={mockFiles}
               />
             )}
             {activePanel === "library" && <LibraryPanel />}
@@ -1251,24 +1244,39 @@ function TasksPanel() {
 }
 
 function LibraryPanel() {
-  const collections = ["All Documents", "Research"];
-  const [activeCollection, setActiveCollection] = useState("All Documents");
+  const library = useLibrary();
+  const collections = ["All Documents", "Research"] as const;
+  const [activeCollection, setActiveCollection] = useState<(typeof collections)[number]>("All Documents");
+  const [query, setQuery] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const researchPapers = [
-    { query: "Trace Odysseus's ten-year journey home from Troy", category: "standard", sources: 14, elapsed: "3m 42s", date: "2 hours ago", id: "research-001" },
-    { query: "Compare modern LLM architectures — transformer vs state-space models", category: "comparison", sources: 22, elapsed: "5m 10s", date: "1 day ago", id: "research-002" },
-    { query: "How to deploy vLLM with multi-LoRA serving", category: "howto", sources: 8, elapsed: "2m 30s", date: "3 days ago", id: "research-003" },
-    { query: "Fact-check: was the Trojan War a real historical event?", category: "factcheck", sources: 11, elapsed: "4m 05s", date: "1 week ago", id: "research-004" },
-  ];
+  const docs = library.documents.filter((d) =>
+    !query.trim() || d.name.toLowerCase().includes(query.toLowerCase()) || d.type.toLowerCase().includes(query.toLowerCase()),
+  );
+  const research = library.research.filter((r) =>
+    !query.trim() || r.query.toLowerCase().includes(query.toLowerCase()),
+  );
 
-  const documents = [
-    { name: "api_docs.md", type: "markdown", size: "12 KB", date: "2 days ago" },
-    { name: "architecture_overview.txt", type: "text", size: "8 KB", date: "5 days ago" },
-    { name: "meeting_notes.pdf", type: "pdf", size: "245 KB", date: "1 week ago" },
-    { name: "schema.sql", type: "sql", size: "4 KB", date: "2 weeks ago" },
-    { name: "sunset_photo.png", type: "image", size: "1.8 MB", date: "3 days ago" },
-    { name: "beach_screenshot.webp", type: "image", size: "640 KB", date: "1 week ago" },
-  ];
+  const handleUploadClick = () => fileInputRef.current?.click();
+  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length) {
+      await library.addDocuments(e.target.files);
+    }
+    e.target.value = "";
+  };
+
+  const handleDownload = (doc: { name: string; dataUrl: string }) => {
+    const a = document.createElement("a");
+    a.href = doc.dataUrl;
+    a.download = doc.name;
+    a.click();
+  };
+
+  const formatElapsed = (ms: number) => {
+    const s = Math.round(ms / 1000);
+    const m = Math.floor(s / 60);
+    return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -1276,7 +1284,12 @@ function LibraryPanel() {
         {collections.map((c) => (
           <button key={c} onClick={() => setActiveCollection(c)} className="relative pb-2 text-sm transition-colors"
             style={{ color: activeCollection === c ? "var(--brand)" : "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
-            <span className="text-xs">{c}</span>
+            <span className="text-xs">
+              {c}
+              <span className="ml-1 opacity-60">
+                ({c === "All Documents" ? library.documents.length : library.research.length})
+              </span>
+            </span>
             {activeCollection === c && <span className="absolute -bottom-px left-0 right-0 h-px" style={{ background: "var(--brand)" }} />}
           </button>
         ))}
@@ -1285,78 +1298,146 @@ function LibraryPanel() {
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs flex-1" style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)" }}>
             <Search className="h-3.5 w-3.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }} />
-            <input placeholder="Search library…" className="flex-1 bg-transparent outline-none" style={{ color: "var(--foreground)" }} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search library…"
+              className="flex-1 bg-transparent outline-none"
+              style={{ color: "var(--foreground)" }}
+            />
           </div>
-          <button className="ml-2 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors"
-            style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
-            <Plus className="h-3 w-3" /> New
-          </button>
+          {activeCollection === "All Documents" && (
+            <button
+              onClick={handleUploadClick}
+              className="ml-2 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors"
+              style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", color: "color-mix(in srgb, var(--foreground) 80%, transparent)" }}
+            >
+              <Upload className="h-3 w-3" /> Upload
+            </button>
+          )}
         </div>
 
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFiles}
+        />
+
         {activeCollection === "All Documents" && (
-          <div className="space-y-1">
-            {documents.map((doc) => (
-              <div key={doc.name} className="flex items-center justify-between rounded-md px-3 py-2 cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--foreground)_4%,transparent)]"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--border) 30%, transparent)" }}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <BookOpen className="h-4 w-4 shrink-0" style={{ color: doc.type === "image" ? "var(--success)" : "var(--brand)" }} />
-                  <div className="min-w-0">
-                    <div className="text-sm truncate">{doc.name}</div>
-                    <div className="flex items-center gap-2 text-[10px]" style={{ color: "color-mix(in srgb, var(--foreground) 38%, transparent)" }}>
-                      <span>{doc.type}</span>
-                      <span>{doc.size}</span>
-                      <span>{doc.date}</span>
+          docs.length === 0 ? (
+            <div className="flex h-40 flex-col items-center justify-center rounded-md border border-dashed text-center" style={{ borderColor: "color-mix(in srgb, var(--border) 70%, transparent)" }}>
+              <BookOpen className="h-6 w-6 mb-2" style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }} />
+              <p className="text-xs" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
+                {query ? "No documents match your search." : "No documents yet. Upload a file to get started."}
+              </p>
+              {!query && (
+                <button
+                  onClick={handleUploadClick}
+                  className="mt-3 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-white"
+                  style={{ background: "var(--brand)" }}
+                >
+                  <Upload className="h-3 w-3" /> Upload files
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {docs.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-[color-mix(in_srgb,var(--foreground)_4%,transparent)]"
+                  style={{ borderBottom: "1px solid color-mix(in srgb, var(--border) 30%, transparent)" }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <BookOpen className="h-4 w-4 shrink-0" style={{ color: doc.type.includes("image") || doc.type === "png" || doc.type === "jpg" || doc.type === "jpeg" || doc.type === "webp" ? "var(--success)" : "var(--brand)" }} />
+                    <div className="min-w-0">
+                      <div className="text-sm truncate">{doc.name}</div>
+                      <div className="flex items-center gap-2 text-[10px]" style={{ color: "color-mix(in srgb, var(--foreground) 38%, transparent)" }}>
+                        <span>{doc.type}</span>
+                        <span>{formatBytes(doc.size)}</span>
+                        <span>{timeAgo(doc.addedAt)}</span>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleDownload(doc)}
+                      className="rounded p-1 transition-colors hover:bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)]"
+                      style={{ color: "color-mix(in srgb, var(--foreground) 55%, transparent)" }}
+                      title="Download"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => library.removeDocument(doc.id)}
+                      className="rounded p-1 transition-colors hover:bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)]"
+                      style={{ color: "color-mix(in srgb, var(--foreground) 38%, transparent)" }}
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <button className="shrink-0 rounded p-1 transition-colors hover:bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)]" style={{ color: "color-mix(in srgb, var(--foreground) 38%, transparent)" }}>
-                  <MoreVertical className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         )}
 
         {activeCollection === "Research" && (
-          <div className="space-y-2">
-            {researchPapers.map((paper) => (
-              <div key={paper.id}
-                className="cursor-pointer rounded-md px-3 py-2.5 transition-all hover:bg-[color-mix(in_srgb,var(--foreground)_4%,transparent)]"
-                style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "color-mix(in srgb, var(--card) 40%, transparent)" }}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm leading-snug">{paper.query}</div>
-                    <div className="mt-1.5 flex items-center gap-2 text-[10px]" style={{ color: "color-mix(in srgb, var(--foreground) 38%, transparent)" }}>
-                      <span className="rounded px-1.5 py-0.5" style={{
-                        background: paper.category === "standard" ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "color-mix(in srgb, var(--brand) 15%, transparent)",
-                        color: paper.category === "standard" ? "color-mix(in srgb, var(--foreground) 50%, transparent)" : "var(--brand)",
-                      }}>{paper.category}</span>
-                      <span>{paper.elapsed}</span>
-                      <span>{paper.sources} sources</span>
-                      <span className="ml-auto">{paper.date}</span>
+          research.length === 0 ? (
+            <div className="flex h-40 flex-col items-center justify-center rounded-md border border-dashed text-center" style={{ borderColor: "color-mix(in srgb, var(--border) 70%, transparent)" }}>
+              <Globe className="h-6 w-6 mb-2" style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }} />
+              <p className="text-xs" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
+                {query ? "No research matches your search." : "No research sessions yet. Run a query in Deep Research to populate this list."}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {research.map((paper) => (
+                <div key={paper.id}
+                  className="rounded-md px-3 py-2.5 transition-all hover:bg-[color-mix(in_srgb,var(--foreground)_4%,transparent)]"
+                  style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "color-mix(in srgb, var(--card) 40%, transparent)" }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm leading-snug">{paper.query}</div>
+                      <div className="mt-1.5 flex items-center gap-2 text-[10px]" style={{ color: "color-mix(in srgb, var(--foreground) 38%, transparent)" }}>
+                        <span className="rounded px-1.5 py-0.5" style={{
+                          background: paper.category === "standard" ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "color-mix(in srgb, var(--brand) 15%, transparent)",
+                          color: paper.category === "standard" ? "color-mix(in srgb, var(--foreground) 50%, transparent)" : "var(--brand)",
+                        }}>{paper.category}</span>
+                        <span>{formatElapsed(paper.elapsedMs)}</span>
+                        <span>{paper.sources} sources</span>
+                        <span className="ml-auto">{timeAgo(paper.createdAt)}</span>
+                      </div>
                     </div>
+                    <Globe className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--brand)" }} />
                   </div>
-                  <Globe className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--brand)" }} />
+                  <div className="mt-2 flex items-center gap-1.5 text-[10px]">
+                    <button
+                      onClick={() => navigator.clipboard?.writeText(paper.content ?? paper.query)}
+                      className="rounded px-2 py-1 transition-colors"
+                      style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}
+                    >
+                      <Download className="h-3 w-3 inline mr-1" />Copy
+                    </button>
+                    <button
+                      onClick={() => library.removeResearch(paper.id)}
+                      className="ml-auto rounded px-2 py-1 transition-colors"
+                      style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center gap-1.5 text-[10px]">
-                  <button className="rounded px-2 py-1 transition-colors" style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
-                    <Download className="h-3 w-3 inline mr-1" />Copy
-                  </button>
-                  <button className="rounded px-2 py-1 transition-colors" style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
-                    Discuss
-                  </button>
-                  <button className="ml-auto rounded px-2 py-1 transition-colors" style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         )}
       </div>
     </div>
   );
 }
+
 
 function ThemePanel() {
   const t = useTheme();
@@ -1966,10 +2047,17 @@ interface SearchPanelProps {
   chats: Chat[];
   onSelectChat: (id: string) => void;
   memories: { id: string; text: string; tags: string[]; meta: string }[];
-  files: { id: string; name: string; type: string; size: string; date: string }[];
 }
 
-function SearchPanel({ chats, onSelectChat, memories, files }: SearchPanelProps) {
+function SearchPanel({ chats, onSelectChat, memories }: SearchPanelProps) {
+  const library = useLibrary();
+  const files = library.documents.map((d) => ({
+    id: d.id,
+    name: d.name,
+    type: d.type,
+    size: formatBytes(d.size),
+    date: timeAgo(d.addedAt),
+  }));
   const [query, setQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState<"All" | "Chats" | "Memories" | "Files">("All");
 

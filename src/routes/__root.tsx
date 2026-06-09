@@ -15,6 +15,7 @@ import { ThemeProvider } from "../lib/theme";
 import { AppearanceProvider } from "../lib/appearance";
 import { AccountProvider } from "../lib/account";
 import { AIDefaultsProvider } from "../lib/aiDefaults";
+import { LibraryProvider } from "../lib/library";
 
 function NotFoundComponent() {
   return (
@@ -126,8 +127,10 @@ function RootComponent() {
         <AppearanceProvider>
           <AccountProvider>
             <AIDefaultsProvider>
-              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-              <Outlet />
+              <LibraryProvider>
+                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                <Outlet />
+              </LibraryProvider>
             </AIDefaultsProvider>
           </AccountProvider>
         </AppearanceProvider>
