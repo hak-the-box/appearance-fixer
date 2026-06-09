@@ -1781,29 +1781,108 @@ function SettingsPanel() {
             <>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
                 <div className="mb-2 text-sm font-semibold">Profile</div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold uppercase"
-                    style={{ background: "color-mix(in srgb, var(--brand) 20%, transparent)", color: "var(--brand)" }}>A</div>
+                    style={{ background: "color-mix(in srgb, var(--brand) 20%, transparent)", color: "var(--brand)" }}>
+                    {(account.profile.username || "?").charAt(0)}
+                  </div>
                   <div>
-                    <div className="text-sm">admin</div>
-                    <div className="text-xs" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>admin@odysseus.local</div>
+                    <div className="text-sm">{account.profile.username}</div>
+                    <div className="text-xs" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>{account.profile.email}</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <span className="block mb-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Username</span>
+                    <input
+                      value={usernameDraft}
+                      onChange={(e) => setUsernameDraft(e.target.value)}
+                      className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
+                      style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                    />
+                  </div>
+                  <div>
+                    <span className="block mb-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>Email</span>
+                    <input
+                      type="email"
+                      value={emailDraft}
+                      onChange={(e) => setEmailDraft(e.target.value)}
+                      className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
+                      style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                    />
+                  </div>
+                  {profileMsg && (
+                    <div className="text-xs" style={{ color: "var(--success, #16a34a)" }}>{profileMsg}</div>
+                  )}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => {
+                        const name = usernameDraft.trim();
+                        const email = emailDraft.trim();
+                        if (!name) { setProfileMsg("Username can't be empty."); return; }
+                        account.updateProfile({ username: name, email });
+                        setProfileMsg("Profile saved.");
+                        setTimeout(() => setProfileMsg(null), 2000);
+                      }}
+                      className="rounded-md px-3 py-1.5 text-xs text-white"
+                      style={{ background: "var(--brand)" }}
+                    >
+                      Save
+                    </button>
                   </div>
                 </div>
               </div>
               <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
                 <div className="mb-2 text-sm font-semibold">Change Password</div>
                 <div className="space-y-2">
-                  <input type="password" placeholder="Current password" className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
-                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }} />
-                  <input type="password" placeholder="New password" className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
-                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }} />
+                  <input
+                    type="password"
+                    placeholder="Current password"
+                    value={currentPw}
+                    onChange={(e) => setCurrentPw(e.target.value)}
+                    className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
+                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                  />
+                  <input
+                    type="password"
+                    placeholder="New password (min 4 chars)"
+                    value={newPw}
+                    onChange={(e) => setNewPw(e.target.value)}
+                    className="w-full rounded-md px-2 py-1.5 text-xs outline-none"
+                    style={{ border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)", background: "var(--input)", color: "var(--foreground)" }}
+                  />
+                  {pwMsg && (
+                    <div className="text-xs" style={{ color: pwMsg.ok ? "var(--success, #16a34a)" : "var(--destructive, #dc2626)" }}>
+                      {pwMsg.text}
+                    </div>
+                  )}
                   <div className="flex justify-end">
-                    <button className="rounded-md px-3 py-1.5 text-xs text-white" style={{ background: "var(--brand)" }}>Update</button>
+                    <button
+                      onClick={() => {
+                        const result = account.changePassword(currentPw, newPw);
+                        if (result.ok) {
+                          setPwMsg({ ok: true, text: "Password updated." });
+                          setCurrentPw("");
+                          setNewPw("");
+                          setTimeout(() => setPwMsg(null), 2500);
+                        } else {
+                          setPwMsg({ ok: false, text: result.error ?? "Could not update password." });
+                        }
+                      }}
+                      className="rounded-md px-3 py-1.5 text-xs text-white"
+                      style={{ background: "var(--brand)" }}
+                    >
+                      Update
+                    </button>
                   </div>
+                  <p className="text-[10px]" style={{ color: "color-mix(in srgb, var(--foreground) 40%, transparent)" }}>
+                    Local-only single-user mode. Default password is <code>admin</code>. Credentials are stored in your browser, not on a server.
+                  </p>
                 </div>
               </div>
             </>
           )}
+
 
           {tab === "shortcuts" && (
             <div className="rounded-md p-3" style={{ border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", background: "var(--card)" }}>
