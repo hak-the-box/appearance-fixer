@@ -127,8 +127,10 @@ function RootComponent() {
         <AppearanceProvider>
           <AccountProvider>
             <AIDefaultsProvider>
-              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-              <Outlet />
+              <LibraryProvider>
+                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                <Outlet />
+              </LibraryProvider>
             </AIDefaultsProvider>
           </AccountProvider>
         </AppearanceProvider>
