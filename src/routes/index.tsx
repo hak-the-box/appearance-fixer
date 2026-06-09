@@ -4,6 +4,8 @@ import { sendChatStream, fetchModels } from "@/lib/chat";
 import type { DiscoveredHost } from "@/lib/llm/types";
 import { BackgroundEffect, useTheme, type ThemeColors } from "@/lib/theme";
 import { useAppearance, SIDEBAR_KEYS, type SidebarKey } from "@/lib/appearance";
+import { useAccount } from "@/lib/account";
+import { useAIDefaults } from "@/lib/aiDefaults";
 
 import { Plus, Search, Wrench, Brain as BrainIcon, Compass, Image as ImageIcon, BookOpen, ClipboardList, Palette, ChevronDown, ChevronUp, Eye, Minus, X, Mic, Terminal, SquareCheck as CheckSquare, ArrowUp, Sparkles, Settings as SettingsIcon, Heart, Upload, Activity, Plus as PlusIcon, Pause, Play, MoveVertical as MoreVertical, Pencil, Globe, Clock, Bookmark, Star, Trash2, Download, ChevronRight, FileSliders as Sliders, Sun, Moon, Monitor, Type, Maximize2, Paperclip, FileText, Database, CircleStop as StopCircle, MessageSquare } from "lucide-react";
 
@@ -1578,6 +1580,21 @@ function SettingsPanel() {
   ];
   const [tab, setTab] = useState("ai");
   const appearance = useAppearance();
+  const account = useAccount();
+  const ai = useAIDefaults();
+
+  // Account tab local form state
+  const [usernameDraft, setUsernameDraft] = useState(account.profile.username);
+  const [emailDraft, setEmailDraft] = useState(account.profile.email);
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  useEffect(() => {
+    setUsernameDraft(account.profile.username);
+    setEmailDraft(account.profile.email);
+  }, [account.profile.username, account.profile.email]);
+
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   return (
     <div className="flex h-full flex-col">
