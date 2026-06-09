@@ -1967,10 +1967,17 @@ interface SearchPanelProps {
   chats: Chat[];
   onSelectChat: (id: string) => void;
   memories: { id: string; text: string; tags: string[]; meta: string }[];
-  files: { id: string; name: string; type: string; size: string; date: string }[];
 }
 
-function SearchPanel({ chats, onSelectChat, memories, files }: SearchPanelProps) {
+function SearchPanel({ chats, onSelectChat, memories }: SearchPanelProps) {
+  const library = useLibrary();
+  const files = library.documents.map((d) => ({
+    id: d.id,
+    name: d.name,
+    type: d.type,
+    size: formatBytes(d.size),
+    date: timeAgo(d.addedAt),
+  }));
   const [query, setQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState<"All" | "Chats" | "Memories" | "Files">("All");
 
