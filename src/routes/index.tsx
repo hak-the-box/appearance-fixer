@@ -7,6 +7,8 @@ import { useAppearance, SIDEBAR_KEYS, type SidebarKey } from "@/lib/appearance";
 import { useAccount } from "@/lib/account";
 import { useAIDefaults } from "@/lib/aiDefaults";
 
+import { useLibrary, formatBytes, timeAgo } from "@/lib/library";
+
 import { Plus, Search, Wrench, Brain as BrainIcon, Compass, Image as ImageIcon, BookOpen, ClipboardList, Palette, ChevronDown, ChevronUp, Eye, Minus, X, Mic, Terminal, SquareCheck as CheckSquare, ArrowUp, Sparkles, Settings as SettingsIcon, Heart, Upload, Activity, Plus as PlusIcon, Pause, Play, MoveVertical as MoreVertical, Pencil, Globe, Clock, Bookmark, Star, Trash2, Download, ChevronRight, FileSliders as Sliders, Sun, Moon, Monitor, Type, Maximize2, Paperclip, FileText, Database, CircleStop as StopCircle, MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/")({
