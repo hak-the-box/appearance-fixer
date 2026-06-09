@@ -93,8 +93,8 @@ export async function sendChatStream(
 
       try {
         const event: StreamEvent = JSON.parse(trimmed.slice(6));
-        if (event.type === "delta") options.onDelta(event.text);
-        if (event.type === "error") options.onError?.(event.message);
+        if (event.type === "delta") options?.onDelta(event.text);
+        if (event.type === "error") options?.onError?.(event.message);
         if (event.type === "done") {
           options?.onDone?.();
           return;
