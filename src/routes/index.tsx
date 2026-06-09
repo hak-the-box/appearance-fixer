@@ -45,14 +45,6 @@ const mockMemories = [
   { id: "mem-4", text: "Uses Ollama for local model running.", tags: ["environment"], meta: "auto · 3d ago" },
 ];
 
-const mockFiles = [
-  { id: "file-1", name: "api_docs.md", type: "markdown", size: "12 KB", date: "2 days ago" },
-  { id: "file-2", name: "architecture_overview.txt", type: "text", size: "8 KB", date: "5 days ago" },
-  { id: "file-3", name: "meeting_notes.pdf", type: "pdf", size: "245 KB", date: "1 week ago" },
-  { id: "file-4", name: "schema.sql", type: "sql", size: "4 KB", date: "2 weeks ago" },
-  { id: "file-5", name: "sunset_photo.png", type: "image", size: "1.8 MB", date: "3 days ago" },
-  { id: "file-6", name: "beach_screenshot.webp", type: "image", size: "640 KB", date: "1 week ago" },
-];
 
 const initialChats: Chat[] = [
   {
