@@ -15,6 +15,7 @@ import { ThemeProvider } from "../lib/theme";
 import { AppearanceProvider } from "../lib/appearance";
 import { AccountProvider } from "../lib/account";
 import { AIDefaultsProvider } from "../lib/aiDefaults";
+import { LibraryProvider } from "../lib/library";
 
 function NotFoundComponent() {
   return (
